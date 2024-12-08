@@ -10,6 +10,7 @@ public class Page {
 		this.isProtected = isProtected;
 	}
 	public BitString getPageType() { return new BitString(false, false); }
+	public String getContent() { return "This page does not exist"; }
 	public BitString save() { return getPageType().append(this.isProtected); }
 	public String toString() { return "Empty Page { name: " + name + "; protected: " + isProtected + " }"; }
 	public static class RedirectPage extends Page {
@@ -19,6 +20,7 @@ public class Page {
 			this.target = target;
 		}
 		public BitString getPageType() { return new BitString(false, true); }
+		public String getContent() { return "Redirect: [[" + target + "]]"; }
 		public BitString save() { return super.save().append(target); }
 		public String toString() { return "Redirect Page { name: " + name + "; protected: " + isProtected + "; target: " + target + " }"; }
 	}
@@ -31,6 +33,7 @@ public class Page {
 			this.content = content;
 		}
 		public BitString getPageType() { return new BitString(true, !this.isDraft); }
+		public String getContent() { return this.content; }
 		public BitString save() { return super.save().append(content); }
 		public String toString() { return "Content Page { name: " + name + "; protected: " + isProtected + "; is draft: " + isDraft + "; content: " + content + " }"; }
 	}

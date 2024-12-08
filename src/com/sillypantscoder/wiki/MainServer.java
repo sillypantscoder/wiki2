@@ -1,5 +1,7 @@
 package com.sillypantscoder.wiki;
 
+import java.io.File;
+
 import com.sillypantscoder.http.HttpRequest;
 import com.sillypantscoder.http.HttpResponse;
 import com.sillypantscoder.http.RequestHandler;
@@ -10,12 +12,19 @@ public class MainServer extends RequestHandler {
 			if (req.next("main")) {
 				String pageName = req.next();
 				if (pageName.equals("Hi")) {
-					Page p = PageLoading.loadFromFile("Hi");
-					return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(p.toString());
+					Page p = PageLoading.loadFromFile("Hi", "_");
+					return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(loadPageMain(p));
 				}
 			}
 		}
 		return new HttpResponse().setStatus(404).setBody("404 GET");
+	}
+	public String loadPageMain(Page p) {
+		File template = new File("main.html");
+		String templateHTML = Utils.readFile(template);
+		String pageContentHTML = Wikitext.parse(p.getContent());
+		String result = templateHTML.replace("{{TITLE}}", p.name).replace("{{CONTENT}}", pageContentHTML);
+		return result;
 	}
 	public HttpResponse post(HttpRequest req) {
 		return new HttpResponse().setStatus(404).setBody("404 GET");

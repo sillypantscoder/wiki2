@@ -1,10 +1,10 @@
 package com.sillypantscoder.wiki;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 
 public class BitString {
@@ -35,13 +35,13 @@ public class BitString {
 		append(false);
 		return this;
 	}
-	public char getChar(int startLoc) {
+	public int getChar(int startLoc) {
 		int b = 0;
 		for (int j = 0; j < 8; j++) {
 			if (startLoc + j >= bits.size()) break;
 			if (bits.get(startLoc + j)) b |= 1 << j;
 		}
-		return (char)(b);
+		return b;
 	}
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
@@ -59,12 +59,14 @@ public class BitString {
 	}
 	public void writeToFile(File f) {
 		try {
-			PrintWriter p = new PrintWriter(f);
+			FileOutputStream o = new FileOutputStream(f);
 			while (!bits.isEmpty()) {
-				p.write(new char[] { readChar() });
+				o.write(readChar());
 			}
-			p.close();
+			o.close();
 		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
@@ -80,23 +82,23 @@ public class BitString {
 		}
 		return result.toString();
 	}
-	public char readChar() {
-		char c = getChar(0);
+	public int readChar() {
+		int c = getChar(0);
 		for (int i = 0; i < 8; i++) read();
 		return c;
 	}
 	public static BitString readFromFile(File f) {
 		BitString s = new BitString();
 		try {
-			FileReader r = new FileReader(f);
+			FileInputStream is = new FileInputStream(f);
 			while (true) {
-				int c = r.read();
+				int c = is.read();
 				if (c == -1) break;
 				for (int i = 0; i < 8; i++) {
 					s.append((c & (1 << i)) != 0);
 				}
 			}
-			r.close();
+			is.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
