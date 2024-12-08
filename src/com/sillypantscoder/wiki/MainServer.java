@@ -9,7 +9,10 @@ public class MainServer extends RequestHandler {
 		if (req.next("wiki")) {
 			if (req.next("main")) {
 				String pageName = req.next();
-				if (pageName.equals("")) {}
+				if (pageName.equals("Hi")) {
+					Page p = PageLoading.loadFromFile("Hi");
+					return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(p.toString());
+				}
 			}
 		}
 		return new HttpResponse().setStatus(404).setBody("404 GET");

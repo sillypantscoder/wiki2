@@ -1,5 +1,10 @@
 package com.sillypantscoder.wiki;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
 public class BitString {
@@ -52,6 +57,17 @@ public class BitString {
 		}
 		return sb.toString();
 	}
+	public void writeToFile(File f) {
+		try {
+			PrintWriter p = new PrintWriter(f);
+			while (!bits.isEmpty()) {
+				p.write(new char[] { readChar() });
+			}
+			p.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
 	// Reading
 	public boolean read() {
 		if (bits.isEmpty()) return false;
@@ -60,10 +76,33 @@ public class BitString {
 	public String readString() {
 		StringBuilder result = new StringBuilder();
 		while (read()) {
-			result.append(getChar(0));
-			for (int i = 0; i < 8; i++) read();
+			result.append(readChar());
 		}
 		return result.toString();
+	}
+	public char readChar() {
+		char c = getChar(0);
+		for (int i = 0; i < 8; i++) read();
+		return c;
+	}
+	public static BitString readFromFile(File f) {
+		BitString s = new BitString();
+		try {
+			FileReader r = new FileReader(f);
+			while (true) {
+				int c = r.read();
+				if (c == -1) break;
+				for (int i = 0; i < 8; i++) {
+					s.append((c & (1 << i)) != 0);
+				}
+			}
+			r.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return s;
 	}
 	// Testing
 	public static void main(String[] args) {

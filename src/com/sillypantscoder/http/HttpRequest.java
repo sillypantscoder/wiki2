@@ -4,9 +4,9 @@ public class HttpRequest {
 	public String[] path;
 	public String body;
 	public HttpRequest(String path, String body) {
-		String[] split = path.split("/");
+		String[] split = path.split("/", -1);
 		this.path = new String[split.length - 1];
-		System.arraycopy(body, 1, split, 0, this.path.length);
+		System.arraycopy(split, 1, this.path, 0, this.path.length);
 		this.body = body;
 	}
 	public boolean next(String part) {

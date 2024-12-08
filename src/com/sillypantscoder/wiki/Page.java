@@ -1,5 +1,7 @@
 package com.sillypantscoder.wiki;
 
+import java.io.File;
+
 public class Page {
 	public String name;
 	public boolean isProtected;
@@ -9,6 +11,7 @@ public class Page {
 	}
 	public BitString getPageType() { return new BitString(false, false); }
 	public BitString save() { return getPageType().append(this.isProtected); }
+	public String toString() { return "Empty Page { name: " + name + "; protected: " + isProtected + " }"; }
 	public static class RedirectPage extends Page {
 		public String target;
 		public RedirectPage(String name, boolean isProtected, String target) {
@@ -17,6 +20,7 @@ public class Page {
 		}
 		public BitString getPageType() { return new BitString(false, true); }
 		public BitString save() { return super.save().append(target); }
+		public String toString() { return "Redirect Page { name: " + name + "; protected: " + isProtected + "; target: " + target + " }"; }
 	}
 	public static class ContentPage extends Page {
 		public boolean isDraft;
@@ -28,6 +32,7 @@ public class Page {
 		}
 		public BitString getPageType() { return new BitString(true, !this.isDraft); }
 		public BitString save() { return super.save().append(content); }
+		public String toString() { return "Content Page { name: " + name + "; protected: " + isProtected + "; is draft: " + isDraft + "; content: " + content + " }"; }
 	}
 	public static Page load(String name, BitString bits) {
 		if (bits.read()) {
@@ -57,5 +62,13 @@ public class Page {
 		Page q = Page.load("hi", s);
 		BitString t = q.save();
 		System.out.println(t.write());
+		// save to file
+		File saveFile = new File("test.dat");
+		t.writeToFile(saveFile);
+		BitString u = BitString.readFromFile(saveFile);
+		System.out.println(u.write());
+		Page r = Page.load("hi", u);
+		BitString v = r.save();
+		System.out.println(v.write());
 	}
 }
