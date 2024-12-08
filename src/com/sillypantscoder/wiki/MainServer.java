@@ -12,7 +12,7 @@ public class MainServer extends RequestHandler {
 			if (req.next("main")) {
 				String pageName = req.next();
 				if (pageName.equals("Hi")) {
-					Page p = PageLoading.loadFromFile("Hi", "_");
+					Page p = PageLoading.loadFromFile("Hi");
 					return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(loadPageMain(p));
 				}
 			}

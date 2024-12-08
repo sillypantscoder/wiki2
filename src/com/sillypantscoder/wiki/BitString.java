@@ -78,7 +78,7 @@ public class BitString {
 	public String readString() {
 		StringBuilder result = new StringBuilder();
 		while (read()) {
-			result.append(readChar());
+			result.append((char)(readChar()));
 		}
 		return result.toString();
 	}
