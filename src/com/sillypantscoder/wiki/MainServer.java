@@ -13,17 +13,18 @@ public class MainServer extends RequestHandler {
 				String pageName = req.next();
 				if (pageName.equals("Hi")) {
 					Page p = PageLoading.loadFromFile("Hi");
-					return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(loadPageMain(p));
+					String html = loadPageMain(pageName, p);
+					return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(html);
 				}
 			}
 		}
 		return new HttpResponse().setStatus(404).setBody("404 GET");
 	}
-	public String loadPageMain(Page p) {
+	public String loadPageMain(String name, Page p) {
 		File template = new File("main.html");
 		String templateHTML = Utils.readFile(template);
 		String pageContentHTML = Wikitext.parse(p.getContent());
-		String result = templateHTML.replace("{{TITLE}}", p.name).replace("{{CONTENT}}", pageContentHTML);
+		String result = templateHTML.replace("{{TITLE}}", name).replace("{{CONTENT}}", pageContentHTML);
 		return result;
 	}
 	public HttpResponse post(HttpRequest req) {
