@@ -1,6 +1,7 @@
 package com.sillypantscoder.wiki;
 
 import java.io.File;
+import java.util.HashMap;
 
 public class PageLoading {
 	public static void writeToFile(String name, Page p) {
@@ -15,6 +16,15 @@ public class PageLoading {
 		BitString s = BitString.readFromFile(targetFile);
 		Page p = Page.load(s);
 		return p;
+	}
+	public static HashMap<String, Page> getAllPages() {
+		HashMap<String, Page> pages = new HashMap<String, Page>();
+		for (File f : new File("pages").listFiles()) {
+			String pageName = f.getName();
+			Page p = loadFromFile(pageName);
+			pages.put(pageName, p);
+		}
+		return pages;
 	}
 	public static void main(String[] args) {
 		Page p = new Page.ContentPage(false, false, "Hi there");
