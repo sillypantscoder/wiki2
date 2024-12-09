@@ -1,16 +1,10 @@
 package com.sillypantscoder.wiki;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class PageLoading {
-	public static void writeToFile(PageName name, Page p) {
-		BitString bits = p.save();
-		File targetFolder = new File("pages/" + name.join());
-		if (!targetFolder.exists()) targetFolder.mkdirs();
-		File targetFile = new File("pages/" + name.join() + "/page.dat");
-		bits.writeToFile(targetFile);
-	}
 	public static Page loadFromFile(PageName name) {
 		File targetFile = new File("pages/" + name.join() + "/page.dat");
 		BitString s = BitString.readFromFile(targetFile);
@@ -33,6 +27,21 @@ public class PageLoading {
 			PageName childName = pageName.then(f.getName());
 			loadPageAndChildren(childName, pages);
 		}
+	}
+	// Saving
+	public static void saveAllPages(HashMap<PageName, Page> pages) {
+		ArrayList<PageName> names = new ArrayList<PageName>(pages.keySet());
+		for (int i = 0; i < names.size(); i++) {
+			PageName name = names.get(i);
+			writeToFile(name, pages.get(name));
+		}
+	}
+	public static void writeToFile(PageName name, Page p) {
+		BitString bits = p.save();
+		File targetFolder = new File("pages/" + name.join());
+		if (!targetFolder.exists()) targetFolder.mkdirs();
+		File targetFile = new File("pages/" + name.join() + "/page.dat");
+		bits.writeToFile(targetFile);
 	}
 	public static void main(String[] args) {
 		Page p = new Page.ContentPage(false, false, "Hi there");

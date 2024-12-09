@@ -11,27 +11,34 @@ public class MainServer extends RequestHandler {
 	public HashMap<PageName, Page> pages = PageLoading.getAllPages();
 	public HttpResponse get(HttpRequest req) {
 		if (req.next("wiki")) {
+			if (! String.join("/", req.path).matches("^[a-zA-Z0-9_/]+$")) return new HttpResponse().setStatus(400).setBody("400 GET (invalid page name)");
+			PageName pageName = new PageName(req.path, 1);
+			Page p = getPage(pageName, false);
+			// find what html to use
+			// based on modifier
+			String html;
 			if (req.next("main")) {
-				PageName pageName = new PageName(req.path);
-				Page p = getPage(pageName);
-				String html = loadPageMain(pageName, p);
-				return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(html);
+				html = loadPageMain(pageName, p);
 			} else if (req.next("info")) {
-				PageName pageName = new PageName(req.path);
-				Page p = getPage(pageName);
-				String html = loadPageInfo(pageName, p);
-				return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(html);
+				html = loadPageInfo(pageName, p);
+			} else if (req.next("edit")) {
+				html = loadPageEdit(pageName, p);
+			} else {
+				// invalid modifier
+				return new HttpResponse().setStatus(400).setBody("400 GET (invalid modifier)");
 			}
+			// return the html
+			return new HttpResponse().setStatus(200).addHeader("Content-Type", "text/html").setBody(html);
 		}
+		// 404
 		return new HttpResponse().setStatus(404).setBody("404 GET");
 	}
-	public Page getPage(PageName pageName) {
-		if (! String.join("/", pageName.parts).matches("^[a-zA-Z0-9_/]$")) new HttpResponse().setStatus(400).setBody("404 GET (The page name is invalid)");
+	public Page getPage(PageName pageName, boolean createIfAbsent) {
 		if (pages.containsKey(pageName)) {
 			return pages.get(pageName);
 		} else {
 			Page p = new Page(false);
-			pages.put(pageName, p);
+			if (createIfAbsent) pages.put(pageName, p);
 			return p;
 		}
 	}
@@ -40,7 +47,15 @@ public class MainServer extends RequestHandler {
 		File template = new File("main.html");
 		String templateHTML = Utils.readFile(template);
 		// Find page content
-		String pageContentHTML = Wikitext.parse(p.getContent());
+		String pageContentWT = p.getContent();
+		if (p instanceof Page.ContentPage con) {
+			if (con.isDraft) {
+				// TODO: settings menu (add this)
+				String templateContents = getPage(new PageName(new String[] { "Templates", "Draft" }), true).getContent();
+				pageContentWT = templateContents + pageContentWT;
+			}
+		}
+		String pageContentHTML = Wikitext.parse(pageContentWT);
 		// Find buttons
 		StringBuilder buttons = new StringBuilder();
 		if (!p.isProtected) {
@@ -79,6 +94,17 @@ public class MainServer extends RequestHandler {
 			pageContentHTML += "<p>This page does not exist</p>";
 			if (p.isProtected) pageContentHTML += "<p>This page is protected</p>";
 		}
+		// Find subpages
+		PageName[] subpages = name.findSubpages(pages.keySet());
+		if (subpages.length == 0) {
+			pageContentHTML += "<p>This page has no subpages</p>";
+		} else {
+			pageContentHTML += "<p>Subpages of this page:</p><ul>";
+			for (PageName subpage : subpages) {
+				pageContentHTML += "<li><a href=\"/wiki/main/" + subpage.join() + "\">" + subpage.join(" > ") + "</a></li>";
+			}
+			pageContentHTML += "</ul>";
+		}
 		// Find buttons
 		StringBuilder buttons = new StringBuilder();
 		buttons.append("<a href=\"/wiki/main/" + name.join() + "\">Back to page</a>");
@@ -90,7 +116,57 @@ public class MainServer extends RequestHandler {
 			.replace("{{CONTENT}}", pageContentHTML);
 		return result;
 	}
+	public String loadPageEdit(PageName name, Page p) {
+		// Load template html
+		File template = new File("main.html");
+		String templateHTML = Utils.readFile(template);
+		// Find page info data
+		String pageContentHTML = "";
+		if (p instanceof Page.RedirectPage red) {
+			if (p.isProtected) pageContentHTML += "<p>This page is protected, you cannot edit it</p>";
+			else pageContentHTML += "<p>Redirect target:<br><input type=text id=newValue value=\"" + red.target.replaceAll("[^a-zA-Z0-9_/]", "") +
+				"><br><button onclick=\"submit(this.previousElementSibling.previousElementSibling.value)\">Submit</button></p>";
+		} else if (p instanceof Page.ContentPage con) {
+			if (p.isProtected) pageContentHTML += "<p>This page is protected, you cannot edit it</p>";
+			else pageContentHTML += "<p>Content:<br><textarea>" + con.content.replace("&", "&amp;").replace("<", "&lt;") +
+				"</textarea><br><button onclick=\"submit(this.previousElementSibling.previousElementSibling.value)\">Submit</button></p>";
+		} else {
+			if (p.isProtected) pageContentHTML += "<p>This page is protected, you cannot create it</p>";
+			else pageContentHTML += "<p>Create page with:<br><textarea></textarea><br><button onclick=\"submit(this.previousElementSibling.previousElementSibling.value)\">Submit</button></p>";
+		}
+		pageContentHTML += "<script>function submit(data) { var x = new XMLHttpRequest(); x.open(\"POST\", \"/wiki/edit/" + name.join() +
+			"\"); x.send(data); x.addEventListener(\"loadend\", () => location.replace(\"/wiki/main/" + name.join() + "\")); }</script>";
+		// Find buttons
+		StringBuilder buttons = new StringBuilder();
+		buttons.append("<a href=\"/wiki/main/" + name.join() + "\">Cancel</a>");
+		// Substitute content into template
+		String result = templateHTML
+			.replace("{{BUTTONS}}", buttons.toString())
+			.replace("{{SUBLINKS}}", "")
+			.replace("{{TITLE}}", "Edit \"" + name.join().replace("_", " ") + "\"")
+			.replace("{{CONTENT}}", pageContentHTML);
+		return result;
+	}
 	public HttpResponse post(HttpRequest req) {
-		return new HttpResponse().setStatus(404).setBody("404 GET");
+		if (req.next("wiki")) {
+			if (req.next("edit")) {
+				if (! String.join("/", req.path).matches("^[a-zA-Z0-9_/]+$")) return new HttpResponse().setStatus(400).setBody("400 POST (invalid page name)");
+				PageName pageName = new PageName(req.path);
+				Page p = getPage(pageName, true);
+				if (p.isProtected) return new HttpResponse().setStatus(403).setBody("Page is protected");
+				if (p instanceof Page.RedirectPage red) {
+					red.target = req.body;
+				} else if (p instanceof Page.ContentPage con) {
+					con.content = req.body;
+				} else {
+					// Create Draft
+					Page.ContentPage newPage = new Page.ContentPage(p.isProtected, true, req.body);
+					pages.put(pageName, newPage);
+				}
+				PageLoading.saveAllPages(pages);
+				return new HttpResponse().setStatus(200).setBody("Successfully updated page content");
+			}
+		}
+		return new HttpResponse().setStatus(404).setBody("404 POST");
 	}
 }
